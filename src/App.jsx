@@ -111,10 +111,10 @@ const INITIAL_LOTS = [
   { lot: "A-233", agent: "Fifonsi Adzo", dist: 100, restant: null, statut: "en cours" },
 ];
 
-const AGENTS = [
-  { nom: "Fifonsi Adzo", compte: true, gestionnaire: "Komla Agbeko", lot: "120 tickets remis · 10 Jul" },
-  { nom: "Yao Klu", compte: false, gestionnaire: "Afi Mensah", lot: "80 tickets remis · 09 Jul" },
-  { nom: "Delali Amegan", compte: true, gestionnaire: "Yawa Dogbe", lot: "60 tickets remis · 10 Jul" },
+const INITIAL_AGENTS = [
+  { nom: "Fifonsi Adzo", statut: "actif", gestionnaire: "Komla Agbeko", lot: "120 tickets remis · 10 Jul" },
+  { nom: "Yao Klu", statut: "actif", gestionnaire: "Afi Mensah", lot: "80 tickets remis · 09 Jul" },
+  { nom: "Delali Amegan", statut: "suspendu", gestionnaire: "Yawa Dogbe", lot: "60 tickets remis · 10 Jul" },
 ];
 
 const ABONNES = [
@@ -263,6 +263,7 @@ const NAV = {
     { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     { id: "bases", label: "Bases & Postes", icon: Radio },
     { id: "gestionnaires", label: "Gestionnaires", icon: Users },
+    { id: "agents", label: "Agents", icon: UserCircle2 },
     { id: "rapports", label: "Rapports financiers", icon: FileBarChart },
     { id: "pannes", label: "Supervision pannes", icon: AlertTriangle },
     { id: "equipements", label: "Équipements", icon: Wrench },
@@ -479,6 +480,66 @@ function AdminGestionnaires({ gestionnaires, onAdd }) {
   );
 }
 
+function AdminAgents({ agents, onAdd, onToggle }) {
+  const [open, setOpen] = useState(false);
+  const [nom, setNom] = useState("");
+  const [gestionnaire, setGestionnaire] = useState(INITIAL_GESTIONNAIRES[0].nom);
+
+  const submit = () => {
+    if (!nom.trim()) return;
+    onAdd({ nom: nom.trim(), statut: "actif", gestionnaire, lot: "Aucun lot reçu pour l'instant" });
+    setNom(""); setOpen(false);
+  };
+
+  return (
+    <div>
+      <SectionHeader title="Agents" sub="Chaque agent a un compte — l'administrateur peut le créer ou le suspendre" action={
+        <button onClick={() => setOpen(true)} className="bg-amber-400 text-slate-950 font-body font-semibold text-sm px-4 py-2 rounded-lg hover:bg-amber-300 transition">+ Ajouter un agent</button>
+      } />
+      <div className="space-y-3">
+        {agents.map((a) => (
+          <div key={a.nom} className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${a.statut === "actif" ? "bg-slate-800" : "bg-red-400/10"}`}>
+                <UserCircle2 size={20} className={a.statut === "actif" ? "text-slate-400" : "text-red-400"} />
+              </div>
+              <div className="min-w-0">
+                <p className="font-display text-slate-50 truncate">{a.nom}</p>
+                <p className="text-xs text-slate-500 font-body truncate">Sous {a.gestionnaire} · {a.lot}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className={`text-xs px-2 py-0.5 rounded-full font-body ${a.statut === "actif" ? "bg-emerald-400/10 text-emerald-400" : "bg-red-400/10 text-red-400"}`}>
+                {a.statut === "actif" ? "Compte actif" : "Suspendu"}
+              </span>
+              <button
+                onClick={() => onToggle(a.nom)}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-lg ${a.statut === "actif" ? "bg-red-400/10 text-red-400 hover:bg-red-400/20" : "bg-emerald-400 text-slate-950 hover:bg-emerald-300"}`}
+              >
+                {a.statut === "actif" ? "Suspendre" : "Réactiver"}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {open && (
+        <Modal title="Ajouter un agent" sub="Créera un compte rattaché à un gestionnaire" onClose={() => setOpen(false)}>
+          <Field label="Nom complet">
+            <input className={inputCls} value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ex : Kokou Mensavi" />
+          </Field>
+          <Field label="Gestionnaire responsable">
+            <select className={inputCls} value={gestionnaire} onChange={(e) => setGestionnaire(e.target.value)}>
+              {INITIAL_GESTIONNAIRES.map((g) => <option key={g.nom} value={g.nom}>{g.nom}</option>)}
+            </select>
+          </Field>
+          <button onClick={submit} className="w-full bg-amber-400 text-slate-950 font-body font-semibold text-sm py-2.5 rounded-lg mt-1">Créer le compte</button>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 function AdminRapports() {
   return (
     <div>
@@ -591,7 +652,7 @@ function AdminEquipements() {
 /* ============================================================
    PAGES — GESTIONNAIRE
    ============================================================ */
-function GestionnaireDashboard() {
+function GestionnaireDashboard({ agents }) {
   return (
     <div>
       <SectionHeader title="Mon tableau de bord" sub="Komla Agbeko — Bases Baguida & Agbalépédogan" />
@@ -601,16 +662,16 @@ function GestionnaireDashboard() {
         <KPICard label="Pannes de mon secteur" value="2" sub="1 en attente d'autorisation" icon={AlertTriangle} accent="red" />
       </div>
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-        <SectionHeader title="Agents sous ma responsabilité" />
+        <SectionHeader title="Agents sous ma responsabilité" sub="La suspension d'un compte se fait côté administrateur" />
         <div className="space-y-3">
-          {AGENTS.map((a) => (
+          {agents.filter((a) => a.gestionnaire === "Komla Agbeko").map((a) => (
             <div key={a.nom} className="flex items-center justify-between border-b border-slate-800 pb-3 last:border-0 last:pb-0">
               <div>
                 <p className="font-body text-slate-200">{a.nom}</p>
                 <p className="text-xs text-slate-500 font-mono">{a.lot}</p>
               </div>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-body ${a.compte ? "bg-teal-400/10 text-teal-400" : "bg-slate-800 text-slate-500"}`}>
-                {a.compte ? "Compte actif" : "Sans compte"}
+              <span className={`text-xs px-2 py-0.5 rounded-full font-body ${a.statut === "actif" ? "bg-teal-400/10 text-teal-400" : "bg-red-400/10 text-red-400"}`}>
+                {a.statut === "actif" ? "Compte actif" : "Suspendu"}
               </span>
             </div>
           ))}
@@ -620,10 +681,11 @@ function GestionnaireDashboard() {
   );
 }
 
-function GestionnaireDistribution({ lots, onAddLot, onReconcile }) {
+function GestionnaireDistribution({ lots, onAddLot, onReconcile, agents }) {
+  const activeAgents = agents.filter((a) => a.statut === "actif");
   const [openNew, setOpenNew] = useState(false);
   const [openReconcile, setOpenReconcile] = useState(null); // lot id being reconciled
-  const [agent, setAgent] = useState(AGENTS[0].nom);
+  const [agent, setAgent] = useState(activeAgents[0]?.nom || "");
   const [qte, setQte] = useState("");
   const [restant, setRestant] = useState("");
 
@@ -687,8 +749,9 @@ function GestionnaireDistribution({ lots, onAddLot, onReconcile }) {
         <Modal title="Nouveau lot" sub="Remise de tickets à un agent" onClose={() => setOpenNew(false)}>
           <Field label="Agent">
             <select className={inputCls} value={agent} onChange={(e) => setAgent(e.target.value)}>
-              {AGENTS.map((a) => <option key={a.nom} value={a.nom}>{a.nom}</option>)}
+              {activeAgents.map((a) => <option key={a.nom} value={a.nom}>{a.nom}</option>)}
             </select>
+            {activeAgents.length === 0 && <p className="text-xs text-red-400 mt-1.5">Aucun agent actif — un compte doit d'abord être réactivé par l'administrateur.</p>}
           </Field>
           <Field label="Quantité de tickets remis">
             <input type="number" min="1" className={inputCls} value={qte} onChange={(e) => setQte(e.target.value)} placeholder="Ex : 100" />
@@ -923,6 +986,7 @@ export default function NetmasterMockup() {
   // Shared, cross-role state — this is what makes actions feel "real"
   const [pannes, setPannes] = useState(INITIAL_PANNES);
   const [gestionnaires, setGestionnaires] = useState(INITIAL_GESTIONNAIRES);
+  const [agents, setAgents] = useState(INITIAL_AGENTS);
   const [lots, setLots] = useState(INITIAL_LOTS);
   const [toast, setToast] = useState("");
 
@@ -950,6 +1014,16 @@ export default function NetmasterMockup() {
     flash(`Compte créé pour ${g.nom}`);
   };
 
+  const addAgent = (a) => {
+    setAgents((prev) => [...prev, a]);
+    flash(`Compte agent créé pour ${a.nom}`);
+  };
+
+  const toggleAgent = (nom) => {
+    setAgents((prev) => prev.map((a) => a.nom === nom ? { ...a, statut: a.statut === "actif" ? "suspendu" : "actif" } : a));
+    flash("Statut du compte agent mis à jour");
+  };
+
   const addLot = (l) => {
     setLots((prev) => [...prev, l]);
     flash(`Lot ${l.lot} enregistré`);
@@ -968,13 +1042,14 @@ export default function NetmasterMockup() {
       if (validTab === "dashboard") return <AdminDashboard />;
       if (validTab === "bases") return <AdminBases />;
       if (validTab === "gestionnaires") return <AdminGestionnaires gestionnaires={gestionnaires} onAdd={addGestionnaire} />;
+      if (validTab === "agents") return <AdminAgents agents={agents} onAdd={addAgent} onToggle={toggleAgent} />;
       if (validTab === "rapports") return <AdminRapports />;
       if (validTab === "pannes") return <AdminPannes pannes={pannes} />;
       if (validTab === "equipements") return <AdminEquipements />;
     }
     if (role === "gestionnaire") {
-      if (validTab === "dashboard") return <GestionnaireDashboard />;
-      if (validTab === "distribution") return <GestionnaireDistribution lots={lots} onAddLot={addLot} onReconcile={reconcileLot} />;
+      if (validTab === "dashboard") return <GestionnaireDashboard agents={agents} />;
+      if (validTab === "distribution") return <GestionnaireDistribution lots={lots} onAddLot={addLot} onReconcile={reconcileLot} agents={agents} />;
       if (validTab === "abonnements") return <GestionnaireAbonnements />;
       if (validTab === "pannes") return <GestionnairePannes pannes={pannes} onAdvance={advancePanne} />;
     }
