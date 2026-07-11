@@ -4,7 +4,7 @@ import {
   Package, ClipboardList, UserCircle2, ChevronRight, Signal, MapPin,
   CheckCircle2, Clock, XCircle, ArrowRightLeft, CreditCard, Boxes,
   TrendingUp, ShieldCheck, Antenna, PhoneCall, ChevronDown, Search,
-  Bell, Settings2, Zap, Menu, X
+  Bell, Settings2, Zap, Menu, X, Trash2, Download, Filter, FileText, Check
 } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area,
@@ -36,25 +36,32 @@ const FontLoader = () => (
 /* ============================================================
    MOCK DATA
    ============================================================ */
-const BASES = [
-  { id: "b1", nom: "Base Baguida", quartier: "Baguida, Lomé", postes: 4, statut: "active", gestionnaire: "Komla Agbeko" },
-  { id: "b2", nom: "Base Adidogomé", quartier: "Adidogomé, Lomé", postes: 3, statut: "active", gestionnaire: "Afi Mensah" },
-  { id: "b3", nom: "Base Agbalépédogan", quartier: "Agbalépédogan, Lomé", postes: 2, statut: "active", gestionnaire: "Komla Agbeko" },
-  { id: "b4", nom: "Base Bè-Kpota", quartier: "Bè-Kpota, Lomé", postes: 3, statut: "maintenance", gestionnaire: "Yawa Dogbe" },
+const INITIAL_BASES = [
+  { id: "b1", nom: "Base Baguida", quartier: "Baguida, Lomé", statut: "active", gestionnaire: "Komla Agbeko" },
+  { id: "b2", nom: "Base Adidogomé", quartier: "Adidogomé, Lomé", statut: "active", gestionnaire: "Afi Mensah" },
+  { id: "b3", nom: "Base Agbalépédogan", quartier: "Agbalépédogan, Lomé", statut: "active", gestionnaire: "Komla Agbeko" },
+  { id: "b4", nom: "Base Bè-Kpota", quartier: "Bè-Kpota, Lomé", statut: "maintenance", gestionnaire: "Yawa Dogbe" },
 ];
 
-const POSTES = [
-  { id: "p1", base: "Base Baguida", nom: "Poste Marché", type: "Wifi Zone", vendeur: "Sena Kouassi" },
-  { id: "p2", base: "Base Baguida", nom: "Poste Rond-Point", type: "Wifi Zone", vendeur: "Edem Aziaka" },
-  { id: "p3", base: "Base Baguida", nom: "Poste Résidence Aku", type: "Abonnement", vendeur: "—" },
-  { id: "p4", base: "Base Adidogomé", nom: "Poste Carrefour", type: "Wifi Zone", vendeur: "Ama Sossou" },
-  { id: "p5", base: "Base Adidogomé", nom: "Poste Immeuble Nyekonakpoe", type: "Abonnement", vendeur: "—" },
+// Les tarifs sont définis par poste, car ils varient d'une base — voire d'un poste — à l'autre
+const INITIAL_POSTES = [
+  { id: "p1", baseId: "b1", nom: "Poste Marché", type: "Wifi Zone", vendeur: "Sena Kouassi", tarifs: { "1 jour": 100, "3 jours": 200, "7 jours": 500 } },
+  { id: "p2", baseId: "b1", nom: "Poste Rond-Point", type: "Wifi Zone", vendeur: "Edem Aziaka", tarifs: { "1 jour": 100, "3 jours": 200, "7 jours": 500 } },
+  { id: "p3", baseId: "b1", nom: "Poste Résidence Aku", type: "Abonnement", vendeur: "—", prixAbonnement: 1500 },
+  { id: "p4", baseId: "b2", nom: "Poste Carrefour", type: "Wifi Zone", vendeur: "Ama Sossou", tarifs: { "1 jour": 100, "3 jours": 250, "7 jours": 550 } },
+  { id: "p5", baseId: "b2", nom: "Poste Immeuble Nyekonakpoe", type: "Abonnement", vendeur: "—", prixAbonnement: 2000 },
 ];
 
-const TICKET_TYPES = [
-  { nom: "1 jour", prix: 100, couleur: "#2dd4bf" },
-  { nom: "3 jours", prix: 200, couleur: "#38bdf8" },
-  { nom: "7 jours", prix: 500, couleur: "#a78bfa" },
+// Catalogue global des types de tickets (durées) — le prix, lui, se règle poste par poste
+const INITIAL_TICKET_TYPES = ["1 jour", "3 jours", "7 jours"];
+
+// Rapports journaliers — simulés pour le maket (validation par gestionnaire, historique filtrable)
+const INITIAL_RAPPORTS = [
+  { id: "R-0512", date: "10 Jul 2026", base: "Base Baguida", auteur: "Fifonsi Adzo (agent)", type: "Caisse", declare: 54000, attendu: 54000, statut: "valide", validePar: "Komla Agbeko" },
+  { id: "R-0511", date: "10 Jul 2026", base: "Base Adidogomé", auteur: "Yao Klu (agent)", type: "Caisse", declare: 41000, attendu: 43500, statut: "en_attente", validePar: null },
+  { id: "R-0510", date: "10 Jul 2026", base: "Base Agbalépédogan", auteur: "Ayi Kokou (technicien)", type: "Intervention", declare: null, attendu: null, statut: "en_attente", validePar: null },
+  { id: "R-0509", date: "09 Jul 2026", base: "Base Bè-Kpota", auteur: "Delali Amegan (agent)", type: "Caisse", declare: 19000, attendu: 21200, statut: "rejete", validePar: "Yawa Dogbe" },
+  { id: "R-0508", date: "09 Jul 2026", base: "Base Baguida", auteur: "Kossi Amouzou (technicien)", type: "Intervention", declare: null, attendu: null, statut: "valide", validePar: "Komla Agbeko" },
 ];
 
 const REVENUE_EVOLUTION = [
@@ -92,11 +99,13 @@ const STATUT_CONFIG = {
   validee: { label: "Validée", color: "text-emerald-400", bg: "bg-emerald-400/10", ring: "ring-emerald-400/30", icon: CheckCircle2, step: 4, next: null },
 };
 
-const EQUIPEMENTS = [
-  { nom: "Antenne secteur Nord", base: "Base Baguida", reparations: 4, immobilisation: "6h cumulées", etat: "surveiller" },
-  { nom: "Routeur Poste Carrefour", base: "Base Adidogomé", reparations: 1, immobilisation: "2h", etat: "ok" },
-  { nom: "Switch central", base: "Base Agbalépédogan", reparations: 3, immobilisation: "9h cumulées", etat: "surveiller" },
-  { nom: "Antenne secteur Sud", base: "Base Bè-Kpota", reparations: 6, immobilisation: "14h cumulées", etat: "critique" },
+const INITIAL_EQUIPMENT_TYPES = ["Antenne", "Routeur", "Switch", "Modem"];
+
+const INITIAL_EQUIPEMENTS = [
+  { id: "eq1", nom: "Antenne secteur Nord", type: "Antenne", base: "Base Baguida", reparations: 4, immobilisation: "6h cumulées", etat: "surveiller" },
+  { id: "eq2", nom: "Routeur Poste Carrefour", type: "Routeur", base: "Base Adidogomé", reparations: 1, immobilisation: "2h", etat: "ok" },
+  { id: "eq3", nom: "Switch central", type: "Switch", base: "Base Agbalépédogan", reparations: 3, immobilisation: "9h cumulées", etat: "surveiller" },
+  { id: "eq4", nom: "Antenne secteur Sud", type: "Antenne", base: "Base Bè-Kpota", reparations: 6, immobilisation: "14h cumulées", etat: "critique" },
 ];
 
 const INITIAL_GESTIONNAIRES = [
@@ -112,10 +121,18 @@ const INITIAL_LOTS = [
 ];
 
 const INITIAL_AGENTS = [
-  { nom: "Fifonsi Adzo", statut: "actif", gestionnaire: "Komla Agbeko", lot: "120 tickets remis · 10 Jul" },
-  { nom: "Yao Klu", statut: "actif", gestionnaire: "Afi Mensah", lot: "80 tickets remis · 09 Jul" },
-  { nom: "Delali Amegan", statut: "suspendu", gestionnaire: "Yawa Dogbe", lot: "60 tickets remis · 10 Jul" },
+  { nom: "Fifonsi Adzo", statut: "actif", peutValider: true, gestionnaire: "Komla Agbeko", lot: "120 tickets remis · 10 Jul" },
+  { nom: "Yao Klu", statut: "actif", peutValider: false, gestionnaire: "Afi Mensah", lot: "80 tickets remis · 09 Jul" },
+  { nom: "Delali Amegan", statut: "suspendu", peutValider: false, gestionnaire: "Yawa Dogbe", lot: "60 tickets remis · 10 Jul" },
 ];
+
+// Identité simulée derrière chaque rôle — sert à la traçabilité automatique des actions
+const ACTOR_NAMES = {
+  admin: "Vous (Administrateur)",
+  gestionnaire: "Komla Agbeko",
+  technicien: "Kossi Amouzou",
+  agent: "Fifonsi Adzo",
+};
 
 const ABONNES = [
   { nom: "M. Kpodar Sena", tel: "90 12 34 56", poste: "Résidence Aku", statut: "actif", expire: "28 Jul" },
@@ -256,6 +273,83 @@ function PanneProgress({ statut }) {
 }
 
 /* ============================================================
+   PANNES — panneau partagé, piloté par les capacités du rôle
+   (Admin/Gestionnaire ont les pleins pouvoirs, Technicien/Agent
+   sont restreints selon la logique validée avec le client)
+   ============================================================ */
+function PannesPanel({ pannes, actor, title, sub, canDeclare, canAuthorize, canRepair, canValidate, onAdvance, onDeclare, bases }) {
+  const [open, setOpen] = useState(false);
+  const [base, setBase] = useState(bases[0]?.nom || "");
+  const [equipement, setEquipement] = useState("");
+  const [desc, setDesc] = useState("");
+
+  const submit = () => {
+    if (!equipement.trim() || !desc.trim()) return;
+    const num = 17 + pannes.length;
+    onDeclare({
+      id: `PN-0${num}`, base, equipement: equipement.trim(), statut: "declaree",
+      technicien: actor, declare: "10 Jul, à l'instant", desc: desc.trim(), dernierActeur: actor,
+    });
+    setEquipement(""); setDesc(""); setOpen(false);
+  };
+
+  return (
+    <div>
+      <SectionHeader title={title} sub={sub} action={canDeclare && (
+        <button onClick={() => setOpen(true)} className="bg-amber-400 text-slate-950 font-body font-semibold text-sm px-4 py-2 rounded-lg hover:bg-amber-300 transition">+ Déclarer une panne</button>
+      )} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {pannes.map((p) => {
+          const canAct =
+            (p.statut === "declaree" && canAuthorize) ||
+            (p.statut === "autorisee" && canRepair) ||
+            (p.statut === "reparee" && canValidate);
+          return (
+            <div key={p.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+              <div className="flex items-center justify-between">
+                <p className="font-mono text-xs text-slate-500">{p.id}</p>
+                <StatutBadge statut={p.statut} />
+              </div>
+              <p className="font-display text-slate-50 mt-2">{p.equipement}</p>
+              <p className="text-sm text-slate-500 font-body">{p.base} · {p.desc}</p>
+              <PanneProgress statut={p.statut} />
+              <p className="text-[11px] text-slate-600 font-mono mt-2">Dernière action : {p.dernierActeur || p.technicien}</p>
+              {canAct && (
+                <button
+                  onClick={() => onAdvance(p.id, actor)}
+                  className="mt-3 text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-400 text-slate-950 flex items-center gap-1"
+                >
+                  {p.statut === "declaree" && <><ShieldCheck size={12} /> Autoriser</>}
+                  {p.statut === "autorisee" && <><Wrench size={12} /> Marquer réparée</>}
+                  {p.statut === "reparee" && <><CheckCircle2 size={12} /> Valider</>}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {open && (
+        <Modal title="Déclarer une panne" sub={`Enregistrée au nom de ${actor}`} onClose={() => setOpen(false)}>
+          <Field label="Base">
+            <select className={inputCls} value={base} onChange={(e) => setBase(e.target.value)}>
+              {bases.map((b) => <option key={b.id} value={b.nom}>{b.nom}</option>)}
+            </select>
+          </Field>
+          <Field label="Équipement concerné">
+            <input className={inputCls} value={equipement} onChange={(e) => setEquipement(e.target.value)} placeholder="Ex : Antenne secteur Est" />
+          </Field>
+          <Field label="Description">
+            <textarea className={inputCls} rows={3} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ce qui a été constaté sur place" />
+          </Field>
+          <button onClick={submit} className="w-full bg-amber-400 text-slate-950 font-body font-semibold text-sm py-2.5 rounded-lg mt-1">Déclarer la panne</button>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    NAV CONFIG
    ============================================================ */
 const NAV = {
@@ -272,6 +366,7 @@ const NAV = {
     { id: "dashboard", label: "Mon tableau de bord", icon: LayoutDashboard },
     { id: "distribution", label: "Distribution tickets", icon: Package },
     { id: "abonnements", label: "Abonnements", icon: CreditCard },
+    { id: "rapports", label: "Rapports à valider", icon: FileBarChart },
     { id: "pannes", label: "Pannes de mon secteur", icon: AlertTriangle },
   ],
   technicien: [
@@ -281,6 +376,7 @@ const NAV = {
   agent: [
     { id: "reception", label: "Réception de lots", icon: Boxes },
     { id: "reconciliation", label: "Réconciliation", icon: ArrowRightLeft },
+    { id: "pannes", label: "Pannes", icon: AlertTriangle },
   ],
 };
 
@@ -375,56 +471,229 @@ function AdminDashboard() {
   );
 }
 
-function AdminBases() {
+function TarifsModal({ poste, ticketTypes, onClose, onSave }) {
+  const [prixAbonnement, setPrixAbonnement] = useState(poste.prixAbonnement ?? "");
+  const [tarifs, setTarifs] = useState(poste.tarifs || {});
+
+  const save = () => {
+    if (poste.type === "Abonnement") {
+      onSave(poste.id, { prixAbonnement: parseInt(prixAbonnement, 10) || 0 });
+    } else {
+      const cleaned = {};
+      ticketTypes.forEach((t) => { cleaned[t] = parseInt(tarifs[t], 10) || 0; });
+      onSave(poste.id, { tarifs: cleaned });
+    }
+    onClose();
+  };
+
+  return (
+    <Modal title={`Tarifs — ${poste.nom}`} sub="Ces prix ne s'appliquent qu'à ce poste" onClose={onClose}>
+      {poste.type === "Abonnement" ? (
+        <Field label="Prix de l'abonnement mensuel (FCFA)">
+          <input type="number" min="0" className={inputCls} value={prixAbonnement} onChange={(e) => setPrixAbonnement(e.target.value)} />
+        </Field>
+      ) : (
+        ticketTypes.map((t) => (
+          <Field key={t} label={`Ticket ${t} (FCFA)`}>
+            <input
+              type="number" min="0" className={inputCls}
+              value={tarifs[t] ?? ""}
+              onChange={(e) => setTarifs((prev) => ({ ...prev, [t]: e.target.value }))}
+            />
+          </Field>
+        ))
+      )}
+      <button onClick={save} className="w-full bg-amber-400 text-slate-950 font-body font-semibold text-sm py-2.5 rounded-lg mt-1">Enregistrer les tarifs</button>
+    </Modal>
+  );
+}
+
+function AdminBases({ bases, postes, equipements, ticketTypes, onAddBase, onRemoveBase, onAddPoste, onRemovePoste, onSaveTarifs, onAddTicketType, onRemoveTicketType }) {
+  const [openBase, setOpenBase] = useState(false);
+  const [baseNom, setBaseNom] = useState("");
+  const [baseQuartier, setBaseQuartier] = useState("");
+  const [baseGestionnaire, setBaseGestionnaire] = useState(INITIAL_GESTIONNAIRES[0].nom);
+
+  const [openPoste, setOpenPoste] = useState(false);
+  const [posteNom, setPosteNom] = useState("");
+  const [posteBaseId, setPosteBaseId] = useState(bases[0]?.id || "");
+  const [posteType, setPosteType] = useState("Wifi Zone");
+  const [posteVendeur, setPosteVendeur] = useState("");
+
+  const [tarifsPoste, setTarifsPoste] = useState(null);
+  const [newTicketType, setNewTicketType] = useState("");
+  const [expanded, setExpanded] = useState(() => bases.reduce((acc, b) => ({ ...acc, [b.id]: true }), {}));
+
+  const toggleExpand = (id) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const submitBase = () => {
+    if (!baseNom.trim()) return;
+    onAddBase({ id: `b${Date.now()}`, nom: baseNom.trim(), quartier: baseQuartier.trim(), statut: "active", gestionnaire: baseGestionnaire });
+    setBaseNom(""); setBaseQuartier(""); setOpenBase(false);
+  };
+
+  const submitPoste = () => {
+    if (!posteNom.trim() || !posteBaseId) return;
+    const base = {
+      id: `p${Date.now()}`, baseId: posteBaseId, nom: posteNom.trim(), type: posteType,
+      vendeur: posteVendeur.trim() || "—",
+    };
+    if (posteType === "Abonnement") base.prixAbonnement = 0;
+    else base.tarifs = Object.fromEntries(ticketTypes.map((t) => [t, 0]));
+    onAddPoste(base);
+    setPosteNom(""); setPosteVendeur(""); setOpenPoste(false);
+  };
+
+  const submitTicketType = () => {
+    const t = newTicketType.trim();
+    if (!t || ticketTypes.includes(t)) return;
+    onAddTicketType(t);
+    setNewTicketType("");
+  };
+
   return (
     <div>
-      <SectionHeader title="Bases & Postes" sub="Structure physique du réseau" />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {BASES.map((b) => (
-          <div key={b.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Antenna size={16} className="text-amber-400" />
-                <p className="font-display text-slate-50">{b.nom}</p>
-              </div>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-body ${b.statut === "active" ? "bg-emerald-400/10 text-emerald-400" : "bg-amber-400/10 text-amber-400"}`}>
-                {b.statut === "active" ? "Active" : "Maintenance"}
-              </span>
-            </div>
-            <p className="text-sm text-slate-500 font-body mt-1 flex items-center gap-1"><MapPin size={12}/> {b.quartier}</p>
-            <div className="flex items-center justify-between mt-4 text-sm font-body">
-              <span className="text-slate-400">{b.postes} postes rattachés</span>
-              <span className="text-slate-400">Gest. {b.gestionnaire}</span>
-            </div>
-          </div>
-        ))}
+      <SectionHeader title="Bases & Postes" sub="Structure physique du réseau, entièrement configurable" action={
+        <div className="flex gap-2">
+          <button onClick={() => setOpenPoste(true)} className="bg-slate-800 text-slate-200 font-body font-semibold text-sm px-4 py-2 rounded-lg hover:bg-slate-700 transition">+ Poste</button>
+          <button onClick={() => setOpenBase(true)} className="bg-amber-400 text-slate-950 font-body font-semibold text-sm px-4 py-2 rounded-lg hover:bg-amber-300 transition">+ Base</button>
+        </div>
+      } />
+
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-6">
+        <p className="text-xs text-slate-400 font-body uppercase tracking-wide mb-3">Types de tickets (catalogue global — le prix se règle par poste)</p>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {ticketTypes.map((t) => (
+            <span key={t} className="inline-flex items-center gap-1.5 bg-slate-800 text-slate-200 text-xs font-body px-3 py-1.5 rounded-full">
+              {t}
+              <button onClick={() => onRemoveTicketType(t)} className="text-slate-500 hover:text-red-400"><X size={12} /></button>
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input className={inputCls + " flex-1"} value={newTicketType} onChange={(e) => setNewTicketType(e.target.value)} placeholder="Ex : 15 jours" onKeyDown={(e) => e.key === "Enter" && submitTicketType()} />
+          <button onClick={submitTicketType} className="bg-amber-400 text-slate-950 font-body font-semibold text-sm px-4 rounded-lg shrink-0">Ajouter</button>
+        </div>
       </div>
 
-      <SectionHeader title="Détail des postes" />
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
-        <table className="w-full text-sm font-body">
-          <thead className="bg-slate-800/50 text-slate-400 text-xs uppercase">
-            <tr>
-              <th className="text-left px-4 py-3">Poste</th>
-              <th className="text-left px-4 py-3">Base</th>
-              <th className="text-left px-4 py-3">Type</th>
-              <th className="text-left px-4 py-3">Vendeur affecté</th>
-            </tr>
-          </thead>
-          <tbody>
-            {POSTES.map((p) => (
-              <tr key={p.id} className="border-t border-slate-800 text-slate-300">
-                <td className="px-4 py-3">{p.nom}</td>
-                <td className="px-4 py-3 text-slate-500">{p.base}</td>
-                <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${p.type === "Wifi Zone" ? "bg-teal-400/10 text-teal-400" : "bg-amber-400/10 text-amber-400"}`}>{p.type}</span>
-                </td>
-                <td className="px-4 py-3 text-slate-500">{p.vendeur}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="space-y-4">
+        {bases.map((b) => {
+          const basePostes = postes.filter((p) => p.baseId === b.id);
+          const baseEquip = equipements.filter((e) => e.base === b.nom);
+          const isOpen = expanded[b.id];
+          return (
+            <div key={b.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+              {/* En-tête de base, cliquable */}
+              <button onClick={() => toggleExpand(b.id)} className="w-full flex items-center justify-between p-5 hover:bg-slate-800/30 transition text-left">
+                <div className="flex items-center gap-3 min-w-0">
+                  {isOpen ? <ChevronDown size={18} className="text-slate-500 shrink-0" /> : <ChevronRight size={18} className="text-slate-500 shrink-0" />}
+                  <Antenna size={18} className="text-amber-400 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-display text-slate-50 truncate">{b.nom}</p>
+                    <p className="text-xs text-slate-500 font-body flex items-center gap-1"><MapPin size={11} /> {b.quartier} · Gest. {b.gestionnaire}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs text-slate-500 font-body hidden sm:inline">{basePostes.length} postes · {baseEquip.length} équip.</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-body ${b.statut === "active" ? "bg-emerald-400/10 text-emerald-400" : "bg-amber-400/10 text-amber-400"}`}>
+                    {b.statut === "active" ? "Active" : "Maintenance"}
+                  </span>
+                  <span onClick={(e) => { e.stopPropagation(); onRemoveBase(b.id); }} className="text-slate-600 hover:text-red-400 cursor-pointer"><Trash2 size={14} /></span>
+                </div>
+              </button>
+
+              {/* Contenu déplié : postes + équipements */}
+              {isOpen && (
+                <div className="border-t border-slate-800 px-5 py-4 space-y-4">
+                  {/* Postes */}
+                  <div>
+                    <p className="text-[11px] text-slate-500 font-body uppercase tracking-wide mb-2">Postes</p>
+                    {basePostes.length === 0 ? (
+                      <p className="text-xs text-slate-600 font-body">Aucun poste sur cette base.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {basePostes.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-2.5 gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-body text-slate-200 text-sm truncate">{p.nom}</p>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${p.type === "Wifi Zone" ? "bg-teal-400/10 text-teal-400" : "bg-amber-400/10 text-amber-400"}`}>{p.type}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 font-mono truncate">
+                                {p.vendeur !== "—" ? p.vendeur + " · " : ""}
+                                {p.type === "Abonnement" ? fmtFCFA(p.prixAbonnement || 0) + "/mois" : Object.entries(p.tarifs || {}).map(([k, v]) => `${k}: ${v}F`).join(" · ")}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button onClick={() => setTarifsPoste(p)} className="text-xs text-amber-400 font-semibold hover:underline">Tarifs</button>
+                              <button onClick={() => onRemovePoste(p.id)} className="text-slate-600 hover:text-red-400"><Trash2 size={13} /></button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Équipements */}
+                  <div>
+                    <p className="text-[11px] text-slate-500 font-body uppercase tracking-wide mb-2">Équipements</p>
+                    {baseEquip.length === 0 ? (
+                      <p className="text-xs text-slate-600 font-body">Aucun équipement sur cette base.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {baseEquip.map((e) => (
+                          <span key={e.id} className="inline-flex items-center gap-1.5 bg-slate-950/50 border border-slate-800 text-slate-300 text-xs font-body px-2.5 py-1.5 rounded-lg">
+                            <Wrench size={11} className="text-slate-500" />
+                            {e.nom}
+                            <span className="text-slate-600">· {e.type}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {bases.length === 0 && <p className="text-sm text-slate-600 font-body">Aucune base pour l'instant.</p>}
       </div>
+
+      {openBase && (
+        <Modal title="Ajouter une base" onClose={() => setOpenBase(false)}>
+          <Field label="Nom de la base"><input className={inputCls} value={baseNom} onChange={(e) => setBaseNom(e.target.value)} placeholder="Ex : Base Kégué" /></Field>
+          <Field label="Quartier"><input className={inputCls} value={baseQuartier} onChange={(e) => setBaseQuartier(e.target.value)} placeholder="Ex : Kégué, Lomé" /></Field>
+          <Field label="Gestionnaire responsable">
+            <select className={inputCls} value={baseGestionnaire} onChange={(e) => setBaseGestionnaire(e.target.value)}>
+              {INITIAL_GESTIONNAIRES.map((g) => <option key={g.nom} value={g.nom}>{g.nom}</option>)}
+            </select>
+          </Field>
+          <button onClick={submitBase} className="w-full bg-amber-400 text-slate-950 font-body font-semibold text-sm py-2.5 rounded-lg mt-1">Créer la base</button>
+        </Modal>
+      )}
+
+      {openPoste && (
+        <Modal title="Ajouter un poste" sub="Les tarifs se règlent juste après, poste par poste" onClose={() => setOpenPoste(false)}>
+          <Field label="Nom du poste"><input className={inputCls} value={posteNom} onChange={(e) => setPosteNom(e.target.value)} placeholder="Ex : Poste Gare" /></Field>
+          <Field label="Base">
+            <select className={inputCls} value={posteBaseId} onChange={(e) => setPosteBaseId(e.target.value)}>
+              {bases.map((b) => <option key={b.id} value={b.id}>{b.nom}</option>)}
+            </select>
+          </Field>
+          <Field label="Type">
+            <select className={inputCls} value={posteType} onChange={(e) => setPosteType(e.target.value)}>
+              <option value="Wifi Zone">Wifi Zone</option>
+              <option value="Abonnement">Abonnement</option>
+            </select>
+          </Field>
+          <Field label="Vendeur affecté (optionnel)"><input className={inputCls} value={posteVendeur} onChange={(e) => setPosteVendeur(e.target.value)} placeholder="Ex : Nom du vendeur" /></Field>
+          <button onClick={submitPoste} className="w-full bg-amber-400 text-slate-950 font-body font-semibold text-sm py-2.5 rounded-lg mt-1">Créer le poste</button>
+        </Modal>
+      )}
+
+      {tarifsPoste && (
+        <TarifsModal poste={tarifsPoste} ticketTypes={ticketTypes} onClose={() => setTarifsPoste(null)} onSave={onSaveTarifs} />
+      )}
     </div>
   );
 }
@@ -480,25 +749,25 @@ function AdminGestionnaires({ gestionnaires, onAdd }) {
   );
 }
 
-function AdminAgents({ agents, onAdd, onToggle }) {
+function AdminAgents({ agents, onAdd, onToggle, onToggleValidation }) {
   const [open, setOpen] = useState(false);
   const [nom, setNom] = useState("");
   const [gestionnaire, setGestionnaire] = useState(INITIAL_GESTIONNAIRES[0].nom);
 
   const submit = () => {
     if (!nom.trim()) return;
-    onAdd({ nom: nom.trim(), statut: "actif", gestionnaire, lot: "Aucun lot reçu pour l'instant" });
+    onAdd({ nom: nom.trim(), statut: "actif", peutValider: false, gestionnaire, lot: "Aucun lot reçu pour l'instant" });
     setNom(""); setOpen(false);
   };
 
   return (
     <div>
-      <SectionHeader title="Agents" sub="Chaque agent a un compte — l'administrateur peut le créer ou le suspendre" action={
+      <SectionHeader title="Agents" sub="Chaque agent a un compte — l'administrateur gère son accès et ses droits" action={
         <button onClick={() => setOpen(true)} className="bg-amber-400 text-slate-950 font-body font-semibold text-sm px-4 py-2 rounded-lg hover:bg-amber-300 transition">+ Ajouter un agent</button>
       } />
       <div className="space-y-3">
         {agents.map((a) => (
-          <div key={a.nom} className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between gap-4">
+          <div key={a.nom} className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${a.statut === "actif" ? "bg-slate-800" : "bg-red-400/10"}`}>
                 <UserCircle2 size={20} className={a.statut === "actif" ? "text-slate-400" : "text-red-400"} />
@@ -508,7 +777,7 @@ function AdminAgents({ agents, onAdd, onToggle }) {
                 <p className="text-xs text-slate-500 font-body truncate">Sous {a.gestionnaire} · {a.lot}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               <span className={`text-xs px-2 py-0.5 rounded-full font-body ${a.statut === "actif" ? "bg-emerald-400/10 text-emerald-400" : "bg-red-400/10 text-red-400"}`}>
                 {a.statut === "actif" ? "Compte actif" : "Suspendu"}
               </span>
@@ -517,6 +786,16 @@ function AdminAgents({ agents, onAdd, onToggle }) {
                 className={`text-xs font-semibold px-3 py-1.5 rounded-lg ${a.statut === "actif" ? "bg-red-400/10 text-red-400 hover:bg-red-400/20" : "bg-emerald-400 text-slate-950 hover:bg-emerald-300"}`}
               >
                 {a.statut === "actif" ? "Suspendre" : "Réactiver"}
+              </button>
+              <span className="w-px h-5 bg-slate-800 mx-1 hidden sm:block" />
+              <span className={`text-xs px-2 py-0.5 rounded-full font-body ${a.peutValider ? "bg-teal-400/10 text-teal-400" : "bg-slate-800 text-slate-500"}`}>
+                {a.peutValider ? "Peut valider" : "Ne valide pas"}
+              </span>
+              <button
+                onClick={() => onToggleValidation(a.nom)}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-lg ${a.peutValider ? "bg-slate-800 text-slate-300 hover:bg-slate-700" : "bg-teal-400 text-slate-950 hover:bg-teal-300"}`}
+              >
+                {a.peutValider ? "Retirer le droit" : "Autoriser à valider"}
               </button>
             </div>
           </div>
@@ -540,95 +819,188 @@ function AdminAgents({ agents, onAdd, onToggle }) {
   );
 }
 
-function AdminRapports() {
+function RapportsPanel({ rapports, canValidate, onValidate, onReject, actor }) {
+  const [filtreBase, setFiltreBase] = useState("Toutes");
+  const [filtreStatut, setFiltreStatut] = useState("Tous");
+  const [filtreType, setFiltreType] = useState("Tous");
+
+  const basesUniques = ["Toutes", ...Array.from(new Set(rapports.map((r) => r.base)))];
+  const filtered = rapports.filter((r) =>
+    (filtreBase === "Toutes" || r.base === filtreBase) &&
+    (filtreStatut === "Tous" || r.statut === filtreStatut) &&
+    (filtreType === "Tous" || r.type === filtreType)
+  );
+
+  const statutCfg = {
+    valide: { label: "Validé", cls: "bg-emerald-400/10 text-emerald-400" },
+    en_attente: { label: "En attente", cls: "bg-amber-400/10 text-amber-400" },
+    rejete: { label: "Rejeté", cls: "bg-red-400/10 text-red-400" },
+  };
+
+  const simulerPDF = (r) => {
+    alert(`Génération du PDF du rapport ${r.id}\n\n(Simulation — dans l'application finale, un vrai fichier PDF sera téléchargé : ${r.base}, ${r.date}, ${r.auteur}.)`);
+  };
+
   return (
     <div>
-      <SectionHeader title="Rapports financiers" sub="Consolidé toutes bases" />
+      <SectionHeader
+        title={canValidate ? "Rapports à valider & historique" : "Rapports financiers"}
+        sub={canValidate ? "Valider les rapports des agents et techniciens, consulter l'historique" : "Consolidé toutes bases"}
+      />
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <KPICard label="Recette hebdomadaire" value={fmtFCFA(178400)} icon={FileBarChart} accent="amber" />
-        <KPICard label="Recette mensuelle" value={fmtFCFA(715000)} icon={TrendingUp} accent="teal" />
-        <KPICard label="Écarts de caisse signalés" value="2" sub="À vérifier avec les gestionnaires" icon={AlertTriangle} accent="red" />
+        <KPICard label="En attente de validation" value={String(rapports.filter((r) => r.statut === "en_attente").length)} sub="Rapports à traiter" icon={Clock} accent="red" />
+        <KPICard label="Écarts de caisse" value="2" sub="À vérifier" icon={AlertTriangle} accent="red" />
       </div>
+
+      {/* Filtres */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-4 flex flex-wrap items-center gap-3">
+        <span className="flex items-center gap-1.5 text-slate-400 text-xs font-body uppercase tracking-wide"><Filter size={14} /> Filtres</span>
+        <select className={inputCls + " w-auto text-xs py-1.5"} value={filtreBase} onChange={(e) => setFiltreBase(e.target.value)}>
+          {basesUniques.map((b) => <option key={b} value={b}>{b}</option>)}
+        </select>
+        <select className={inputCls + " w-auto text-xs py-1.5"} value={filtreStatut} onChange={(e) => setFiltreStatut(e.target.value)}>
+          <option value="Tous">Tous les statuts</option>
+          <option value="en_attente">En attente</option>
+          <option value="valide">Validé</option>
+          <option value="rejete">Rejeté</option>
+        </select>
+        <select className={inputCls + " w-auto text-xs py-1.5"} value={filtreType} onChange={(e) => setFiltreType(e.target.value)}>
+          <option value="Tous">Tous les types</option>
+          <option value="Caisse">Caisse</option>
+          <option value="Intervention">Intervention</option>
+        </select>
+        <span className="text-xs text-slate-600 font-body ml-auto">{filtered.length} rapport(s)</span>
+      </div>
+
+      {/* Historique */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
         <table className="w-full text-sm font-body">
           <thead className="bg-slate-800/50 text-slate-400 text-xs uppercase">
             <tr>
+              <th className="text-left px-4 py-3">Réf.</th>
+              <th className="text-left px-4 py-3">Date</th>
               <th className="text-left px-4 py-3">Base</th>
-              <th className="text-left px-4 py-3">Gestionnaire</th>
-              <th className="text-left px-4 py-3">Déclaré</th>
-              <th className="text-left px-4 py-3">Attendu</th>
-              <th className="text-left px-4 py-3">Écart</th>
+              <th className="text-left px-4 py-3">Auteur</th>
+              <th className="text-left px-4 py-3">Type</th>
+              <th className="text-left px-4 py-3">Montant</th>
+              <th className="text-left px-4 py-3">Statut</th>
+              <th className="text-left px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {[
-              { base: "Baguida", g: "Komla Agbeko", declare: 54000, attendu: 54000 },
-              { base: "Adidogomé", g: "Afi Mensah", declare: 41000, attendu: 43500 },
-              { base: "Agbalépédogan", g: "Komla Agbeko", declare: 27500, attendu: 27500 },
-              { base: "Bè-Kpota", g: "Yawa Dogbe", declare: 19000, attendu: 21200 },
-            ].map((r, i) => {
-              const ecart = r.declare - r.attendu;
-              return (
-                <tr key={i} className="border-t border-slate-800 text-slate-300">
-                  <td className="px-4 py-3">{r.base}</td>
-                  <td className="px-4 py-3 text-slate-500">{r.g}</td>
-                  <td className="px-4 py-3 font-mono">{fmtFCFA(r.declare)}</td>
-                  <td className="px-4 py-3 font-mono text-slate-500">{fmtFCFA(r.attendu)}</td>
-                  <td className={`px-4 py-3 font-mono ${ecart === 0 ? "text-emerald-400" : "text-red-400"}`}>{ecart === 0 ? "—" : fmtFCFA(ecart)}</td>
-                </tr>
-              );
-            })}
+            {filtered.map((r) => (
+              <tr key={r.id} className="border-t border-slate-800 text-slate-300">
+                <td className="px-4 py-3 font-mono text-xs">{r.id}</td>
+                <td className="px-4 py-3 text-slate-500">{r.date}</td>
+                <td className="px-4 py-3">{r.base}</td>
+                <td className="px-4 py-3 text-slate-500 text-xs">{r.auteur}</td>
+                <td className="px-4 py-3">
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${r.type === "Caisse" ? "bg-teal-400/10 text-teal-400" : "bg-sky-400/10 text-sky-400"}`}>{r.type}</span>
+                </td>
+                <td className="px-4 py-3 font-mono text-xs">{r.declare !== null ? fmtFCFA(r.declare) : "—"}</td>
+                <td className="px-4 py-3">
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${statutCfg[r.statut].cls}`}>{statutCfg[r.statut].label}</span>
+                  {r.validePar && <p className="text-[10px] text-slate-600 font-mono mt-0.5">par {r.validePar}</p>}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => simulerPDF(r)} className="text-slate-500 hover:text-amber-400" title="Télécharger le PDF"><Download size={15} /></button>
+                    {canValidate && r.statut === "en_attente" && (
+                      <>
+                        <button onClick={() => onValidate(r.id, actor)} className="text-emerald-400 hover:text-emerald-300" title="Valider"><Check size={15} /></button>
+                        <button onClick={() => onReject(r.id, actor)} className="text-red-400 hover:text-red-300" title="Rejeter"><X size={15} /></button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr><td colSpan={8} className="px-4 py-6 text-center text-slate-600 font-body">Aucun rapport ne correspond à ces filtres.</td></tr>
+            )}
           </tbody>
         </table>
       </div>
+      {!canValidate && (
+        <p className="text-xs text-slate-600 font-body mt-3">La validation des rapports est réservée aux gestionnaires et à l'administrateur.</p>
+      )}
     </div>
   );
 }
 
-function AdminPannes({ pannes }) {
+function AdminEquipements({ equipements, types, onAddType, onRemoveType, onAddEquipement, onRemoveEquipement, bases }) {
+  const [newType, setNewType] = useState("");
+  const [openEq, setOpenEq] = useState(false);
+  const [nom, setNom] = useState("");
+  const [type, setType] = useState(types[0] || "");
+  const [base, setBase] = useState(bases[0]?.nom || "");
+
+  const submitType = () => {
+    const t = newType.trim();
+    if (!t || types.includes(t)) return;
+    onAddType(t);
+    setNewType("");
+  };
+
+  const submitEquipement = () => {
+    if (!nom.trim() || !type) return;
+    onAddEquipement({
+      id: `eq${Date.now()}`, nom: nom.trim(), type, base,
+      reparations: 0, immobilisation: "0h", etat: "ok",
+    });
+    setNom(""); setOpenEq(false);
+  };
+
   return (
     <div>
-      <SectionHeader title="Supervision des pannes" sub="Vue globale — toutes bases" />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {pannes.map((p) => (
-          <div key={p.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <div className="flex items-center justify-between">
-              <p className="font-mono text-xs text-slate-500">{p.id}</p>
-              <StatutBadge statut={p.statut} />
-            </div>
-            <p className="font-display text-slate-50 mt-2">{p.equipement}</p>
-            <p className="text-sm text-slate-500 font-body">{p.base} · {p.desc}</p>
-            <PanneProgress statut={p.statut} />
-            <div className="flex items-center justify-between mt-3 text-xs text-slate-500 font-body">
-              <span className="flex items-center gap-1"><Wrench size={12}/> {p.technicien}</span>
-              <span className="flex items-center gap-1"><Clock size={12}/> {p.declare}</span>
-            </div>
-          </div>
-        ))}
+      <SectionHeader title="Équipements" sub="Types configurables, ajout et retrait par l'administrateur" />
+
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-6">
+        <p className="text-xs text-slate-400 font-body uppercase tracking-wide mb-3">Types d'équipement</p>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {types.map((t) => (
+            <span key={t} className="inline-flex items-center gap-1.5 bg-slate-800 text-slate-200 text-xs font-body px-3 py-1.5 rounded-full">
+              {t}
+              <button onClick={() => onRemoveType(t)} className="text-slate-500 hover:text-red-400"><X size={12} /></button>
+            </span>
+          ))}
+          {types.length === 0 && <p className="text-xs text-slate-600 font-body">Aucun type défini pour l'instant.</p>}
+        </div>
+        <div className="flex gap-2">
+          <input
+            className={inputCls + " flex-1"}
+            value={newType}
+            onChange={(e) => setNewType(e.target.value)}
+            placeholder="Nouveau type (ex : Câble fibre)"
+            onKeyDown={(e) => e.key === "Enter" && submitType()}
+          />
+          <button onClick={submitType} className="bg-amber-400 text-slate-950 font-body font-semibold text-sm px-4 rounded-lg shrink-0">Ajouter</button>
+        </div>
       </div>
-    </div>
-  );
-}
 
-function AdminEquipements() {
-  return (
-    <div>
-      <SectionHeader title="Équipements" sub="Fréquence de réparation par actif" />
+      <SectionHeader title="Parc matériel" sub="Fréquence de réparation par actif" action={
+        <button onClick={() => setOpenEq(true)} className="bg-amber-400 text-slate-950 font-body font-semibold text-sm px-4 py-2 rounded-lg hover:bg-amber-300 transition">+ Ajouter un équipement</button>
+      } />
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
         <table className="w-full text-sm font-body">
           <thead className="bg-slate-800/50 text-slate-400 text-xs uppercase">
             <tr>
               <th className="text-left px-4 py-3">Équipement</th>
+              <th className="text-left px-4 py-3">Type</th>
               <th className="text-left px-4 py-3">Base</th>
               <th className="text-left px-4 py-3">Réparations (6 mois)</th>
               <th className="text-left px-4 py-3">Immobilisation</th>
               <th className="text-left px-4 py-3">État</th>
+              <th className="text-left px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
-            {EQUIPEMENTS.map((e, i) => (
-              <tr key={i} className="border-t border-slate-800 text-slate-300">
+            {equipements.map((e) => (
+              <tr key={e.id} className="border-t border-slate-800 text-slate-300">
                 <td className="px-4 py-3">{e.nom}</td>
+                <td className="px-4 py-3 text-slate-500">{e.type}</td>
                 <td className="px-4 py-3 text-slate-500">{e.base}</td>
                 <td className="px-4 py-3 font-mono">{e.reparations}</td>
                 <td className="px-4 py-3 text-slate-500">{e.immobilisation}</td>
@@ -639,12 +1011,38 @@ function AdminEquipements() {
                     "bg-red-400/10 text-red-400"
                   }`}>{e.etat === "ok" ? "Bon état" : e.etat === "surveiller" ? "À surveiller" : "Critique"}</span>
                 </td>
+                <td className="px-4 py-3">
+                  <button onClick={() => onRemoveEquipement(e.id)} className="text-slate-600 hover:text-red-400"><Trash2 size={14} /></button>
+                </td>
               </tr>
             ))}
+            {equipements.length === 0 && (
+              <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-600 font-body">Aucun équipement enregistré.</td></tr>
+            )}
           </tbody>
         </table>
       </div>
       <p className="text-xs text-slate-600 font-body mt-3">L'antenne secteur Sud de Bè-Kpota cumule 6 réparations en 6 mois — envisager un remplacement plutôt qu'une nouvelle réparation.</p>
+
+      {openEq && (
+        <Modal title="Ajouter un équipement" sub="Sera rattaché à une base, prêt pour le suivi des pannes" onClose={() => setOpenEq(false)}>
+          <Field label="Nom de l'équipement">
+            <input className={inputCls} value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ex : Routeur secteur Est" />
+          </Field>
+          <Field label="Type">
+            <select className={inputCls} value={type} onChange={(e) => setType(e.target.value)}>
+              {types.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            {types.length === 0 && <p className="text-xs text-red-400 mt-1.5">Créez d'abord un type d'équipement ci-dessus.</p>}
+          </Field>
+          <Field label="Base">
+            <select className={inputCls} value={base} onChange={(e) => setBase(e.target.value)}>
+              {bases.map((b) => <option key={b.id} value={b.nom}>{b.nom}</option>)}
+            </select>
+          </Field>
+          <button onClick={submitEquipement} className="w-full bg-amber-400 text-slate-950 font-body font-semibold text-sm py-2.5 rounded-lg mt-1">Ajouter au parc</button>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -806,102 +1204,18 @@ function GestionnaireAbonnements() {
   );
 }
 
-function GestionnairePannes({ pannes, onAdvance }) {
-  return (
-    <div>
-      <SectionHeader title="Pannes de mon secteur" sub="Autoriser la réparation, valider une fois confirmée" />
-      <div className="space-y-3">
-        {pannes.map((p) => (
-          <div key={p.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="font-body text-slate-200 truncate">{p.equipement} <span className="text-slate-600 font-mono text-xs">({p.id})</span></p>
-              <p className="text-xs text-slate-500 font-body">{p.base} · {p.desc}</p>
-              <PanneProgress statut={p.statut} />
-            </div>
-            <div className="text-right shrink-0">
-              <StatutBadge statut={p.statut} />
-              {p.statut === "declaree" && <button onClick={() => onAdvance(p.id)} className="block mt-2 text-xs bg-amber-400 text-slate-950 font-semibold px-3 py-1.5 rounded-lg">Autoriser</button>}
-              {p.statut === "reparee" && <button onClick={() => onAdvance(p.id)} className="block mt-2 text-xs bg-emerald-400 text-slate-950 font-semibold px-3 py-1.5 rounded-lg">Valider</button>}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 /* ============================================================
    PAGES — TECHNICIEN
    ============================================================ */
-function TechnicienInterventions({ pannes, onAdvance, onDeclare }) {
-  const [open, setOpen] = useState(false);
-  const [base, setBase] = useState(BASES[0].nom);
-  const [equipement, setEquipement] = useState("");
-  const [desc, setDesc] = useState("");
-
-  const submit = () => {
-    if (!equipement.trim() || !desc.trim()) return;
-    const num = 17 + pannes.filter((p) => true).length;
-    onDeclare({
-      id: `PN-0${num}`, base, equipement: equipement.trim(), statut: "declaree",
-      technicien: "Kossi Amouzou", declare: "10 Jul, à l'instant", desc: desc.trim(),
-    });
-    setEquipement(""); setDesc(""); setOpen(false);
-  };
-
-  return (
-    <div>
-      <SectionHeader title="Mes interventions" sub="Kossi Amouzou & Ayi Kokou" action={
-        <button onClick={() => setOpen(true)} className="bg-amber-400 text-slate-950 font-body font-semibold text-sm px-4 py-2 rounded-lg hover:bg-amber-300 transition">+ Déclarer une panne</button>
-      } />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {pannes.map((p) => (
-          <div key={p.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <div className="flex items-center justify-between">
-              <p className="font-mono text-xs text-slate-500">{p.id}</p>
-              <StatutBadge statut={p.statut} />
-            </div>
-            <p className="font-display text-slate-50 mt-2">{p.equipement}</p>
-            <p className="text-sm text-slate-500 font-body">{p.base} · {p.desc}</p>
-            <PanneProgress statut={p.statut} />
-            {p.statut === "autorisee" && (
-              <button onClick={() => onAdvance(p.id)} className="mt-3 text-xs bg-sky-400 text-slate-950 font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1">
-                <Wrench size={12} /> Marquer réparée
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {open && (
-        <Modal title="Déclarer une panne" sub="Sera visible par le gestionnaire pour autorisation" onClose={() => setOpen(false)}>
-          <Field label="Base">
-            <select className={inputCls} value={base} onChange={(e) => setBase(e.target.value)}>
-              {BASES.map((b) => <option key={b.id} value={b.nom}>{b.nom}</option>)}
-            </select>
-          </Field>
-          <Field label="Équipement concerné">
-            <input className={inputCls} value={equipement} onChange={(e) => setEquipement(e.target.value)} placeholder="Ex : Antenne secteur Est" />
-          </Field>
-          <Field label="Description">
-            <textarea className={inputCls} rows={3} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ce qui a été constaté sur place" />
-          </Field>
-          <button onClick={submit} className="w-full bg-amber-400 text-slate-950 font-body font-semibold text-sm py-2.5 rounded-lg mt-1">Déclarer la panne</button>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-function TechnicienEquipements() {
+function TechnicienEquipements({ equipements }) {
   return (
     <div>
       <SectionHeader title="Équipements de mes bases" />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {EQUIPEMENTS.map((e, i) => (
-          <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        {equipements.map((e) => (
+          <div key={e.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5">
             <p className="font-display text-slate-50">{e.nom}</p>
-            <p className="text-xs text-slate-500 font-body mt-1">{e.base}</p>
+            <p className="text-xs text-slate-500 font-body mt-1">{e.type} · {e.base}</p>
             <div className="flex items-center justify-between mt-3 text-sm font-body">
               <span className="text-slate-400">{e.reparations} réparations</span>
               <span className="text-slate-500 font-mono">{e.immobilisation}</span>
@@ -988,6 +1302,12 @@ export default function NetmasterMockup() {
   const [gestionnaires, setGestionnaires] = useState(INITIAL_GESTIONNAIRES);
   const [agents, setAgents] = useState(INITIAL_AGENTS);
   const [lots, setLots] = useState(INITIAL_LOTS);
+  const [equipements, setEquipements] = useState(INITIAL_EQUIPEMENTS);
+  const [bases, setBases] = useState(INITIAL_BASES);
+  const [postes, setPostes] = useState(INITIAL_POSTES);
+  const [ticketTypes, setTicketTypes] = useState(INITIAL_TICKET_TYPES);
+  const [rapports, setRapports] = useState(INITIAL_RAPPORTS);
+  const [equipmentTypes, setEquipmentTypes] = useState(INITIAL_EQUIPMENT_TYPES);
   const [toast, setToast] = useState("");
 
   const flash = (msg) => {
@@ -995,18 +1315,18 @@ export default function NetmasterMockup() {
     setTimeout(() => setToast(""), 2600);
   };
 
-  const advancePanne = (id) => {
+  const advancePanne = (id, actor) => {
     setPannes((prev) => prev.map((p) => {
       if (p.id !== id) return p;
       const next = STATUT_CONFIG[p.statut].next;
-      return next ? { ...p, statut: next } : p;
+      return next ? { ...p, statut: next, dernierActeur: actor } : p;
     }));
-    flash("Statut de la panne mis à jour");
+    flash(`Statut de la panne mis à jour par ${actor}`);
   };
 
   const declarePanne = (nouvellePanne) => {
     setPannes((prev) => [nouvellePanne, ...prev]);
-    flash("Panne déclarée — en attente d'autorisation");
+    flash(`Panne déclarée par ${nouvellePanne.dernierActeur} — en attente d'autorisation`);
   };
 
   const addGestionnaire = (g) => {
@@ -1024,6 +1344,11 @@ export default function NetmasterMockup() {
     flash("Statut du compte agent mis à jour");
   };
 
+  const toggleAgentValidation = (nom) => {
+    setAgents((prev) => prev.map((a) => a.nom === nom ? { ...a, peutValider: !a.peutValider } : a));
+    flash("Droit de validation mis à jour");
+  };
+
   const addLot = (l) => {
     setLots((prev) => [...prev, l]);
     flash(`Lot ${l.lot} enregistré`);
@@ -1034,32 +1359,153 @@ export default function NetmasterMockup() {
     flash(`Lot ${lotId} réconcilié`);
   };
 
+  const addEquipmentType = (t) => {
+    setEquipmentTypes((prev) => [...prev, t]);
+    flash(`Type "${t}" ajouté`);
+  };
+
+  const removeEquipmentType = (t) => {
+    setEquipmentTypes((prev) => prev.filter((x) => x !== t));
+    flash(`Type "${t}" retiré`);
+  };
+
+  const addEquipement = (e) => {
+    setEquipements((prev) => [...prev, e]);
+    flash(`${e.nom} ajouté au parc`);
+  };
+
+  const removeEquipement = (id) => {
+    setEquipements((prev) => prev.filter((e) => e.id !== id));
+    flash("Équipement retiré du parc");
+  };
+
+  const addBase = (b) => {
+    setBases((prev) => [...prev, b]);
+    flash(`${b.nom} créée`);
+  };
+
+  const removeBase = (id) => {
+    setBases((prev) => prev.filter((b) => b.id !== id));
+    flash("Base retirée");
+  };
+
+  const addPoste = (p) => {
+    setPostes((prev) => [...prev, p]);
+    flash(`${p.nom} créé`);
+  };
+
+  const removePoste = (id) => {
+    setPostes((prev) => prev.filter((p) => p.id !== id));
+    flash("Poste retiré");
+  };
+
+  const saveTarifs = (posteId, patch) => {
+    setPostes((prev) => prev.map((p) => p.id === posteId ? { ...p, ...patch } : p));
+    flash("Tarifs mis à jour");
+  };
+
+  const addTicketType = (t) => {
+    setTicketTypes((prev) => [...prev, t]);
+    flash(`Type de ticket "${t}" ajouté`);
+  };
+
+  const removeTicketType = (t) => {
+    setTicketTypes((prev) => prev.filter((x) => x !== t));
+    flash(`Type de ticket "${t}" retiré`);
+  };
+
+  const validateRapport = (id, who) => {
+    setRapports((prev) => prev.map((r) => r.id === id ? { ...r, statut: "valide", validePar: who } : r));
+    flash(`Rapport ${id} validé par ${who}`);
+  };
+
+  const rejectRapport = (id, who) => {
+    setRapports((prev) => prev.map((r) => r.id === id ? { ...r, statut: "rejete", validePar: who } : r));
+    flash(`Rapport ${id} rejeté par ${who}`);
+  };
+
   const navItems = NAV[role];
   const validTab = navItems.find((n) => n.id === tab) ? tab : navItems[0].id;
+  const actor = ACTOR_NAMES[role];
+  const currentAgent = agents.find((a) => a.nom === ACTOR_NAMES.agent);
 
   const renderPage = () => {
     if (role === "admin") {
       if (validTab === "dashboard") return <AdminDashboard />;
-      if (validTab === "bases") return <AdminBases />;
+      if (validTab === "bases") return (
+        <AdminBases
+          bases={bases} postes={postes} equipements={equipements} ticketTypes={ticketTypes}
+          onAddBase={addBase} onRemoveBase={removeBase}
+          onAddPoste={addPoste} onRemovePoste={removePoste}
+          onSaveTarifs={saveTarifs}
+          onAddTicketType={addTicketType} onRemoveTicketType={removeTicketType}
+        />
+      );
       if (validTab === "gestionnaires") return <AdminGestionnaires gestionnaires={gestionnaires} onAdd={addGestionnaire} />;
-      if (validTab === "agents") return <AdminAgents agents={agents} onAdd={addAgent} onToggle={toggleAgent} />;
-      if (validTab === "rapports") return <AdminRapports />;
-      if (validTab === "pannes") return <AdminPannes pannes={pannes} />;
-      if (validTab === "equipements") return <AdminEquipements />;
+      if (validTab === "agents") return <AdminAgents agents={agents} onAdd={addAgent} onToggle={toggleAgent} onToggleValidation={toggleAgentValidation} />;
+      if (validTab === "rapports") return (
+        <RapportsPanel
+          rapports={rapports} canValidate actor={actor}
+          onValidate={validateRapport} onReject={rejectRapport}
+        />
+      );
+      if (validTab === "pannes") return (
+        <PannesPanel
+          pannes={pannes} actor={actor} bases={bases}
+          title="Supervision des pannes" sub="Vue globale — pleins pouvoirs (comme sur le terrain)"
+          canDeclare canAuthorize canRepair canValidate
+          onAdvance={advancePanne} onDeclare={declarePanne}
+        />
+      );
+      if (validTab === "equipements") return (
+        <AdminEquipements
+          equipements={equipements} types={equipmentTypes} bases={bases}
+          onAddType={addEquipmentType} onRemoveType={removeEquipmentType}
+          onAddEquipement={addEquipement} onRemoveEquipement={removeEquipement}
+        />
+      );
     }
     if (role === "gestionnaire") {
       if (validTab === "dashboard") return <GestionnaireDashboard agents={agents} />;
       if (validTab === "distribution") return <GestionnaireDistribution lots={lots} onAddLot={addLot} onReconcile={reconcileLot} agents={agents} />;
       if (validTab === "abonnements") return <GestionnaireAbonnements />;
-      if (validTab === "pannes") return <GestionnairePannes pannes={pannes} onAdvance={advancePanne} />;
+      if (validTab === "rapports") return (
+        <RapportsPanel
+          rapports={rapports} canValidate actor={actor}
+          onValidate={validateRapport} onReject={rejectRapport}
+        />
+      );
+      if (validTab === "pannes") return (
+        <PannesPanel
+          pannes={pannes} actor={actor} bases={bases}
+          title="Pannes de mon secteur" sub="Vous pouvez déclarer, autoriser, réparer et valider — comme sur le terrain"
+          canDeclare canAuthorize canRepair canValidate
+          onAdvance={advancePanne} onDeclare={declarePanne}
+        />
+      );
     }
     if (role === "technicien") {
-      if (validTab === "interventions") return <TechnicienInterventions pannes={pannes} onAdvance={advancePanne} onDeclare={declarePanne} />;
-      if (validTab === "equipements") return <TechnicienEquipements />;
+      if (validTab === "interventions") return (
+        <PannesPanel
+          pannes={pannes} actor={actor} bases={bases}
+          title="Mes interventions" sub="Kossi Amouzou & Ayi Kokou — jamais d'accès à l'argent ni aux tickets"
+          canDeclare canRepair
+          onAdvance={advancePanne} onDeclare={declarePanne}
+        />
+      );
+      if (validTab === "equipements") return <TechnicienEquipements equipements={equipements} />;
     }
     if (role === "agent") {
       if (validTab === "reception") return <AgentReception />;
       if (validTab === "reconciliation") return <AgentReconciliation />;
+      if (validTab === "pannes") return (
+        <PannesPanel
+          pannes={pannes} actor={actor} bases={bases}
+          title="Pannes" sub={currentAgent?.peutValider ? "Vous pouvez déclarer, réparer et valider — droit accordé par l'administrateur" : "Vous pouvez déclarer et réparer — la validation n'est pas activée pour votre compte"}
+          canDeclare canRepair canValidate={!!currentAgent?.peutValider}
+          onAdvance={advancePanne} onDeclare={declarePanne}
+        />
+      );
     }
     return null;
   };
